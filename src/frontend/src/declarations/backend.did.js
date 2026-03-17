@@ -33,18 +33,31 @@ export const SiteSettings = IDL.Record({
   'telegramLink' : IDL.Text,
   'instagramLink' : IDL.Text,
   'facebookLink' : IDL.Text,
+  'adminPassword' : IDL.Text,
+});
+export const AppDownloadStat = IDL.Record({
+  'appId' : IDL.Text,
+  'appName' : IDL.Text,
+  'downloads' : IDL.Nat,
+});
+export const MonthlyTraffic = IDL.Record({
+  'month' : IDL.Text,
+  'visits' : IDL.Nat,
 });
 
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'addApp' : IDL.Func([AppEntry], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'changeAdminPassword' : IDL.Func([IDL.Text, IDL.Text], [IDL.Bool], []),
   'deleteApp' : IDL.Func([IDL.Text], [], []),
   'generateOTP' : IDL.Func([IDL.Text], [IDL.Text], []),
   'getAllApps' : IDL.Func([], [IDL.Vec(AppEntry)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getDownloadStats' : IDL.Func([], [IDL.Vec(AppDownloadStat)], ['query']),
   'getFeaturedApps' : IDL.Func([], [IDL.Vec(AppEntry)], ['query']),
+  'getMonthlyTraffic' : IDL.Func([], [IDL.Vec(MonthlyTraffic)], ['query']),
   'getSiteSettings' : IDL.Func([], [SiteSettings], ['query']),
   'getUserProfile' : IDL.Func(
       [IDL.Principal],
@@ -53,10 +66,13 @@ export const idlService = IDL.Service({
     ),
   'isAdminPhone' : IDL.Func([IDL.Text], [IDL.Bool], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'recordDownload' : IDL.Func([IDL.Text], [], []),
+  'recordPageVisit' : IDL.Func([IDL.Text], [], []),
   'registerAdminPhone' : IDL.Func([IDL.Text], [], []),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
   'updateApp' : IDL.Func([AppEntry], [], []),
   'updateSiteSettings' : IDL.Func([SiteSettings], [], []),
+  'verifyAdminPassword' : IDL.Func([IDL.Text], [IDL.Bool], ['query']),
   'verifyOTP' : IDL.Func([IDL.Text, IDL.Text], [IDL.Bool], []),
 });
 
@@ -88,18 +104,31 @@ export const idlFactory = ({ IDL }) => {
     'telegramLink' : IDL.Text,
     'instagramLink' : IDL.Text,
     'facebookLink' : IDL.Text,
+    'adminPassword' : IDL.Text,
+  });
+  const AppDownloadStat = IDL.Record({
+    'appId' : IDL.Text,
+    'appName' : IDL.Text,
+    'downloads' : IDL.Nat,
+  });
+  const MonthlyTraffic = IDL.Record({
+    'month' : IDL.Text,
+    'visits' : IDL.Nat,
   });
   
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'addApp' : IDL.Func([AppEntry], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'changeAdminPassword' : IDL.Func([IDL.Text, IDL.Text], [IDL.Bool], []),
     'deleteApp' : IDL.Func([IDL.Text], [], []),
     'generateOTP' : IDL.Func([IDL.Text], [IDL.Text], []),
     'getAllApps' : IDL.Func([], [IDL.Vec(AppEntry)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getDownloadStats' : IDL.Func([], [IDL.Vec(AppDownloadStat)], ['query']),
     'getFeaturedApps' : IDL.Func([], [IDL.Vec(AppEntry)], ['query']),
+    'getMonthlyTraffic' : IDL.Func([], [IDL.Vec(MonthlyTraffic)], ['query']),
     'getSiteSettings' : IDL.Func([], [SiteSettings], ['query']),
     'getUserProfile' : IDL.Func(
         [IDL.Principal],
@@ -108,10 +137,13 @@ export const idlFactory = ({ IDL }) => {
       ),
     'isAdminPhone' : IDL.Func([IDL.Text], [IDL.Bool], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'recordDownload' : IDL.Func([IDL.Text], [], []),
+    'recordPageVisit' : IDL.Func([IDL.Text], [], []),
     'registerAdminPhone' : IDL.Func([IDL.Text], [], []),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
     'updateApp' : IDL.Func([AppEntry], [], []),
     'updateSiteSettings' : IDL.Func([SiteSettings], [], []),
+    'verifyAdminPassword' : IDL.Func([IDL.Text], [IDL.Bool], ['query']),
     'verifyOTP' : IDL.Func([IDL.Text, IDL.Text], [IDL.Bool], []),
   });
 };

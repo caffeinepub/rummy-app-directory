@@ -1,6 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { AppEntry, SiteSettings } from "../backend.d";
+import type {
+  AppDownloadStat,
+  AppEntry,
+  MonthlyTraffic,
+  SiteSettings,
+} from "../backend.d";
 import { useActor } from "./useActor";
+
+// Extended actor type for analytics methods not yet in generated interface
+type AnalyticsActor = {
+  recordDownload(appId: string): Promise<void>;
+  recordPageVisit(monthKey: string): Promise<void>;
+  getDownloadStats(): Promise<Array<AppDownloadStat>>;
+  getMonthlyTraffic(): Promise<Array<MonthlyTraffic>>;
+};
 
 export function useGetAllApps() {
   const { actor, isFetching } = useActor();
@@ -40,8 +53,13 @@ export function useGetSiteSettings() {
           telegramLink: "",
           instagramLink: "",
           facebookLink: "",
+          adminPassword: "",
         };
-      return actor.getSiteSettings();
+      const result = await actor.getSiteSettings();
+      return {
+        ...result,
+        adminPassword: result.adminPassword ?? "",
+      } as SiteSettings;
     },
     enabled: !!actor && !isFetching,
   });
@@ -131,6 +149,85 @@ export function useIsAdminPhone() {
     mutationFn: (phone: string) => {
       if (!actor) throw new Error("No actor");
       return actor.isAdminPhone(phone);
+    },
+  });
+}
+
+export function useRecordDownload() {
+  const { actor } = useActor();
+  return useMutation({
+    mutationFn: (appId: string) => {
+      if (!actor) throw new Error("No actor");
+      return (actor as unknown as AnalyticsActor).recordDownload(appId);
+    },
+  });
+}
+
+export function useRecordPageVisit() {
+  const { actor } = useActor();
+  return useMutation({
+    mutationFn: (monthKey: string) => {
+      if (!actor) throw new Error("No actor");
+      return (actor as unknown as AnalyticsActor).recordPageVisit(monthKey);
+    },
+  });
+}
+
+export function useGetDownloadStats() {
+  const { actor, isFetching } = useActor();
+  return useQuery<AppDownloadStat[]>({
+    queryKey: ["downloadStats"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return (actor as unknown as AnalyticsActor).getDownloadStats();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useGetMonthlyTraffic() {
+  const { actor, isFetching } = useActor();
+  return useQuery<MonthlyTraffic[]>({
+    queryKey: ["monthlyTraffic"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return (actor as unknown as AnalyticsActor).getMonthlyTraffic();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+// Extended actor type for password management
+type PasswordActor = {
+  verifyAdminPassword(password: string): Promise<boolean>;
+  changeAdminPassword(
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<boolean>;
+};
+
+export function useVerifyAdminPassword() {
+  const { actor } = useActor();
+  return useMutation({
+    mutationFn: (password: string) => {
+      if (!actor) throw new Error("No actor");
+      return (actor as unknown as PasswordActor).verifyAdminPassword(password);
+    },
+  });
+}
+
+export function useChangeAdminPassword() {
+  const { actor } = useActor();
+  return useMutation({
+    mutationFn: ({
+      currentPassword,
+      newPassword,
+    }: { currentPassword: string; newPassword: string }) => {
+      if (!actor) throw new Error("No actor");
+      return (actor as unknown as PasswordActor).changeAdminPassword(
+        currentPassword,
+        newPassword,
+      );
     },
   });
 }

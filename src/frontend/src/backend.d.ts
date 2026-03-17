@@ -15,6 +15,7 @@ export interface SiteSettings {
     telegramLink: string;
     instagramLink: string;
     facebookLink: string;
+    adminPassword: string;
 }
 export interface AppEntry {
     id: string;
@@ -29,6 +30,15 @@ export interface AppEntry {
 }
 export interface UserProfile {
     name: string;
+}
+export interface AppDownloadStat {
+    appId: string;
+    appName: string;
+    downloads: bigint;
+}
+export interface MonthlyTraffic {
+    month: string;
+    visits: bigint;
 }
 export enum UserRole {
     admin = "admin",
@@ -53,4 +63,8 @@ export interface backendInterface {
     updateApp(app: AppEntry): Promise<void>;
     updateSiteSettings(settings: SiteSettings): Promise<void>;
     verifyOTP(phone: string, otp: string): Promise<boolean>;
+    recordDownload(appId: string): Promise<void>;
+    recordPageVisit(monthKey: string): Promise<void>;
+    getDownloadStats(): Promise<Array<AppDownloadStat>>;
+    getMonthlyTraffic(): Promise<Array<MonthlyTraffic>>;
 }

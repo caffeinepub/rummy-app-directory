@@ -10,6 +10,8 @@ import {
   useAddApp,
   useGetAllApps,
   useGetSiteSettings,
+  useRecordDownload,
+  useRecordPageVisit,
 } from "../hooks/useQueries";
 
 const SAMPLE_APPS: AppEntry[] = [
@@ -86,7 +88,15 @@ function StarRating({ count = 5 }: { count?: number }) {
   );
 }
 
-function AppCard({ app, index }: { app: AppEntry; index: number }) {
+function AppCard({
+  app,
+  index,
+  onDownload,
+}: {
+  app: AppEntry;
+  index: number;
+  onDownload: (appId: string, referralLink: string) => void;
+}) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
@@ -157,14 +167,13 @@ function AppCard({ app, index }: { app: AppEntry; index: number }) {
           </div>
         </div>
         <Button
-          asChild
+          type="button"
+          onClick={() => onDownload(app.id, app.referralLink)}
           className="mt-4 w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold font-display tracking-wide"
           data-ocid={`apps.primary_button.${index + 1}`}
         >
-          <a href={app.referralLink} target="_blank" rel="noopener noreferrer">
-            <Download className="w-4 h-4 mr-2" />
-            Download Now
-          </a>
+          <Download className="w-4 h-4 mr-2" />
+          Download Now
         </Button>
       </div>
     </motion.div>
@@ -302,6 +311,8 @@ export default function HomePage() {
   const { data: settings } = useGetSiteSettings();
   const addApp = useAddApp();
   const { actor } = useActor();
+  const recordDownload = useRecordDownload();
+  const recordPageVisit = useRecordPageVisit();
 
   const seedData = useCallback(async () => {
     await Promise.all(SAMPLE_APPS.map((app) => addApp.mutateAsync(app)));
@@ -313,6 +324,20 @@ export default function HomePage() {
       seedData();
     }
   }, [actor, apps, seedData]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: run once when actor is ready
+  useEffect(() => {
+    if (!actor) return;
+    const monthKey = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+    recordPageVisit.mutate(monthKey);
+  }, [actor]);
+
+  const handleDownload = (appId: string, referralLink: string) => {
+    recordDownload.mutate(appId);
+    if (referralLink && referralLink !== "#") {
+      window.open(referralLink, "_blank", "noopener,noreferrer");
+    }
+  };
 
   const sortedApps = apps
     ? [...apps].sort((a, b) => {
@@ -443,7 +468,12 @@ export default function HomePage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {sortedApps.map((app, i) => (
-                  <AppCard key={app.id} app={app} index={i} />
+                  <AppCard
+                    key={app.id}
+                    app={app}
+                    index={i}
+                    onDownload={handleDownload}
+                  />
                 ))}
               </div>
             )}

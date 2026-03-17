@@ -7,26 +7,15 @@ import { Eye, EyeOff, KeyRound, Loader2, ShieldCheck } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 import { toast } from "sonner";
-
-const DEFAULT_PASSWORD = "admin@123";
-
-function getAdminPassword(): string {
-  return localStorage.getItem("adminPassword") || DEFAULT_PASSWORD;
-}
-
-type Mode = "login" | "setup";
+import { useVerifyAdminPassword } from "../hooks/useQueries";
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
-  const [mode, _setMode] = useState<Mode>(
-    localStorage.getItem("adminPassword") ? "login" : "setup",
-  );
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const verifyPassword = useVerifyAdminPassword();
 
   const handleLogin = async () => {
     if (!password.trim()) {
@@ -35,33 +24,18 @@ export default function AdminLoginPage() {
     }
     setError("");
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 400));
-    if (password === getAdminPassword()) {
-      localStorage.setItem("adminAuth", JSON.stringify({ isAdmin: true }));
-      toast.success("Login successful!");
-      navigate({ to: "/admin" });
-    } else {
-      setError("Incorrect password. Please try again.");
+    try {
+      const valid = await verifyPassword.mutateAsync(password);
+      if (valid) {
+        localStorage.setItem("adminAuth", JSON.stringify({ isAdmin: true }));
+        toast.success("Login successful!");
+        navigate({ to: "/admin" });
+      } else {
+        setError("Incorrect password");
+      }
+    } catch {
+      setError("Login failed, please try again");
     }
-    setLoading(false);
-  };
-
-  const handleSetupPassword = async () => {
-    if (!password.trim() || password.length < 6) {
-      setError("Password must be at least 6 characters");
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-    setError("");
-    setLoading(true);
-    await new Promise((r) => setTimeout(r, 400));
-    localStorage.setItem("adminPassword", password);
-    localStorage.setItem("adminAuth", JSON.stringify({ isAdmin: true }));
-    toast.success("Admin password set! You are now logged in.");
-    navigate({ to: "/admin" });
     setLoading(false);
   };
 
@@ -107,13 +81,11 @@ export default function AdminLoginPage() {
             <div className="flex items-center gap-2 mb-1">
               <ShieldCheck className="w-5 h-5 text-primary" />
               <h2 className="font-display font-bold text-2xl text-foreground">
-                {mode === "login" ? "Admin Login" : "Set Admin Password"}
+                Admin Login
               </h2>
             </div>
             <p className="text-muted-foreground text-sm">
-              {mode === "login"
-                ? "Enter your admin password to continue"
-                : "First time setup — choose a secure password"}
+              Enter your admin password to continue
             </p>
           </div>
 
@@ -137,17 +109,10 @@ export default function AdminLoginPage() {
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder={
-                    mode === "setup"
-                      ? "Choose a password"
-                      : "Enter your password"
-                  }
+                  placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  onKeyDown={(e) =>
-                    e.key === "Enter" &&
-                    (mode === "login" ? handleLogin() : undefined)
-                  }
+                  onKeyDown={(e) => e.key === "Enter" && handleLogin()}
                   className="pl-10 pr-10 bg-secondary border-border text-foreground placeholder:text-muted-foreground"
                   data-ocid="login.input"
                 />
@@ -166,69 +131,21 @@ export default function AdminLoginPage() {
               </div>
             </div>
 
-            {mode === "setup" && (
-              <div className="space-y-2">
-                <Label htmlFor="confirm" className="text-foreground">
-                  Confirm Password
-                </Label>
-                <div className="relative">
-                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    id="confirm"
-                    type={showConfirm ? "text" : "password"}
-                    placeholder="Re-enter your password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    onKeyDown={(e) =>
-                      e.key === "Enter" && handleSetupPassword()
-                    }
-                    className="pl-10 pr-10 bg-secondary border-border text-foreground placeholder:text-muted-foreground"
-                    data-ocid="login.confirm.input"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirm((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    tabIndex={-1}
-                  >
-                    {showConfirm ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-            )}
-
             <Button
               type="button"
-              onClick={mode === "login" ? handleLogin : handleSetupPassword}
+              onClick={handleLogin}
               disabled={loading}
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-display font-semibold"
               data-ocid="login.submit_button"
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Please
-                  wait...
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Verifying...
                 </>
-              ) : mode === "login" ? (
-                "Login to Admin Panel"
               ) : (
-                "Set Password & Login"
+                "Login to Admin Panel"
               )}
             </Button>
-
-            {mode === "login" && (
-              <p className="text-center text-xs text-muted-foreground pt-2">
-                Default password is{" "}
-                <span className="font-mono font-bold text-primary">
-                  admin@123
-                </span>{" "}
-                (change it in settings after login)
-              </p>
-            )}
           </div>
         </div>
       </motion.div>

@@ -97,6 +97,7 @@ export interface SiteSettings {
     telegramLink: string;
     instagramLink: string;
     facebookLink: string;
+    adminPassword: string;
 }
 export interface AppEntry {
     id: string;

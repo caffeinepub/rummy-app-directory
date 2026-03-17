@@ -24,6 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useNavigate } from "@tanstack/react-router";
 import {
+  BarChart2,
   Crown,
   Eye,
   EyeOff,
@@ -37,22 +38,31 @@ import {
   Save,
   Settings,
   Trash2,
+  TrendingUp,
   X,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import type { AppEntry, SiteSettings } from "../backend.d";
+import type {
+  AppDownloadStat,
+  AppEntry,
+  MonthlyTraffic,
+  SiteSettings,
+} from "../backend.d";
 import {
   useAddApp,
   useDeleteApp,
   useGetAllApps,
+  useGetDownloadStats,
+  useGetMonthlyTraffic,
   useGetSiteSettings,
   useUpdateApp,
   useUpdateSiteSettings,
+  useVerifyAdminPassword,
 } from "../hooks/useQueries";
 
-type Tab = "apps" | "settings";
+type Tab = "apps" | "settings" | "analytics";
 
 const emptyApp: AppEntry = {
   id: "",
@@ -74,6 +84,7 @@ const emptySettings: SiteSettings = {
   telegramLink: "",
   instagramLink: "",
   facebookLink: "",
+  adminPassword: "",
 };
 
 export default function AdminDashboard() {
@@ -88,10 +99,13 @@ export default function AdminDashboard() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Password change state
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [showCurrentPwd, setShowCurrentPwd] = useState(false);
   const [showNewPwd, setShowNewPwd] = useState(false);
   const [showConfirmPwd, setShowConfirmPwd] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
 
   const { data: apps, isLoading: appsLoading } = useGetAllApps();
   const { data: settings } = useGetSiteSettings();
@@ -99,6 +113,11 @@ export default function AdminDashboard() {
   const updateApp = useUpdateApp();
   const deleteApp = useDeleteApp();
   const updateSettings = useUpdateSiteSettings();
+  const verifyPasswordMutation = useVerifyAdminPassword();
+  const { data: downloadStats, isLoading: statsLoading } =
+    useGetDownloadStats();
+  const { data: monthlyTraffic, isLoading: trafficLoading } =
+    useGetMonthlyTraffic();
 
   useEffect(() => {
     if (settings) {
@@ -110,6 +129,7 @@ export default function AdminDashboard() {
         telegramLink: settings.telegramLink || "",
         instagramLink: settings.instagramLink || "",
         facebookLink: settings.facebookLink || "",
+        adminPassword: "",
       });
     }
   }, [settings]);
@@ -182,7 +202,11 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
+    if (!currentPassword.trim()) {
+      toast.error("Please enter your current password");
+      return;
+    }
     if (!newPassword.trim() || newPassword.length < 6) {
       toast.error("Password must be at least 6 characters");
       return;
@@ -191,10 +215,28 @@ export default function AdminDashboard() {
       toast.error("Passwords do not match");
       return;
     }
-    localStorage.setItem("adminPassword", newPassword);
-    setNewPassword("");
-    setConfirmNewPassword("");
-    toast.success("Password changed successfully!");
+    setChangingPassword(true);
+    try {
+      // First verify current password via query call
+      const isValid = await verifyPasswordMutation.mutateAsync(currentPassword);
+      if (!isValid) {
+        toast.error("Current password is incorrect");
+        setChangingPassword(false);
+        return;
+      }
+      // Update password via updateSiteSettings (reliable update path)
+      await updateSettings.mutateAsync({
+        ...settingsForm,
+        adminPassword: newPassword,
+      });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+      toast.success("Password changed successfully!");
+    } catch {
+      toast.error("Failed to change password, please try again");
+    }
+    setChangingPassword(false);
   };
 
   const sortedApps = apps
@@ -259,6 +301,18 @@ export default function AdminDashboard() {
             data-ocid="admin.settings.tab"
           >
             <Settings className="w-4 h-4" /> Site Settings
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("analytics")}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              tab === "analytics"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+            data-ocid="admin.analytics.tab"
+          >
+            <BarChart2 className="w-4 h-4" /> Analytics
           </button>
         </div>
 
@@ -600,6 +654,34 @@ export default function AdminDashboard() {
               </h2>
               <div className="max-w-lg space-y-4 bg-card border border-border rounded-xl p-6">
                 <div className="space-y-2">
+                  <Label htmlFor="currentPassword" className="text-foreground">
+                    Current Password
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="currentPassword"
+                      type={showCurrentPwd ? "text" : "password"}
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      className="pr-10 bg-secondary border-border text-foreground"
+                      placeholder="Enter current password"
+                      data-ocid="settings.current_password.input"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPwd((v) => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      tabIndex={-1}
+                    >
+                      {showCurrentPwd ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="newPassword" className="text-foreground">
                     New Password
                   </Label>
@@ -661,16 +743,259 @@ export default function AdminDashboard() {
                 <Button
                   type="button"
                   onClick={handleChangePassword}
+                  disabled={changingPassword}
                   className="bg-primary hover:bg-primary/90 text-primary-foreground font-display font-semibold"
                   data-ocid="settings.change_password.button"
                 >
-                  <KeyRound className="w-4 h-4 mr-2" /> Update Password
+                  {changingPassword ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />{" "}
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <KeyRound className="w-4 h-4 mr-2" /> Update Password
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
           </motion.div>
         )}
       </div>
+
+      {/* Analytics Tab */}
+      {tab === "analytics" && (
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-8"
+        >
+          <h2 className="font-display font-bold text-2xl text-foreground">
+            Analytics Dashboard
+          </h2>
+
+          {/* App Downloads Section */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp className="w-5 h-5 text-primary" />
+              <h3 className="font-display font-semibold text-xl text-foreground">
+                App Downloads
+              </h3>
+            </div>
+            {statsLoading ? (
+              <div className="space-y-3" data-ocid="analytics.loading_state">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-14 rounded-xl" />
+                ))}
+              </div>
+            ) : !downloadStats || downloadStats.length === 0 ? (
+              <div
+                className="text-center py-12 rounded-xl border border-dashed border-border"
+                data-ocid="analytics.download_stats.empty_state"
+              >
+                <BarChart2 className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
+                <p className="text-muted-foreground text-sm">
+                  No data yet. Data will appear here as users visit and download
+                  apps.
+                </p>
+              </div>
+            ) : (
+              <div
+                className="bg-card border border-border rounded-xl overflow-hidden"
+                data-ocid="analytics.download_stats.table"
+              >
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border bg-secondary/40">
+                      <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        #
+                      </th>
+                      <th className="text-left px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        App Name
+                      </th>
+                      <th className="text-right px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Downloads
+                      </th>
+                      <th className="text-right px-5 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden sm:table-cell">
+                        Share
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...(downloadStats as AppDownloadStat[])]
+                      .sort((a, b) => Number(b.downloads) - Number(a.downloads))
+                      .map((stat, i) => {
+                        const total = downloadStats.reduce(
+                          (s, d) =>
+                            s + Number((d as AppDownloadStat).downloads),
+                          0,
+                        );
+                        const pct =
+                          total > 0
+                            ? Math.round(
+                                (Number((stat as AppDownloadStat).downloads) /
+                                  total) *
+                                  100,
+                              )
+                            : 0;
+                        return (
+                          <tr
+                            key={(stat as AppDownloadStat).appId}
+                            className="border-b border-border/50 last:border-0 hover:bg-secondary/30 transition-colors"
+                            data-ocid={`analytics.download_stats.row.${i + 1}`}
+                          >
+                            <td className="px-5 py-4 text-sm text-muted-foreground font-mono">
+                              {i + 1}
+                            </td>
+                            <td className="px-5 py-4">
+                              <span className="font-display font-medium text-foreground">
+                                {(stat as AppDownloadStat).appName}
+                              </span>
+                            </td>
+                            <td className="px-5 py-4 text-right">
+                              <span className="font-display font-bold text-primary text-lg">
+                                {Number(
+                                  (stat as AppDownloadStat).downloads,
+                                ).toLocaleString()}
+                              </span>
+                            </td>
+                            <td className="px-5 py-4 text-right hidden sm:table-cell">
+                              <div className="flex items-center justify-end gap-2">
+                                <div className="w-20 bg-secondary rounded-full h-1.5">
+                                  <div
+                                    className="bg-primary h-1.5 rounded-full transition-all"
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs text-muted-foreground w-8 text-right">
+                                  {pct}%
+                                </span>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-secondary/40 border-t border-border">
+                      <td className="px-5 py-3" colSpan={2}>
+                        <span className="text-sm font-semibold text-foreground">
+                          Total Downloads
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 text-right" colSpan={2}>
+                        <span className="font-display font-bold text-primary">
+                          {downloadStats
+                            .reduce(
+                              (s, d) =>
+                                s + Number((d as AppDownloadStat).downloads),
+                              0,
+                            )
+                            .toLocaleString()}
+                        </span>
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Monthly Traffic Section */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <BarChart2 className="w-5 h-5 text-primary" />
+              <h3 className="font-display font-semibold text-xl text-foreground">
+                Monthly Website Traffic
+              </h3>
+            </div>
+            {trafficLoading ? (
+              <div
+                className="space-y-3"
+                data-ocid="analytics.traffic.loading_state"
+              >
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-14 rounded-xl" />
+                ))}
+              </div>
+            ) : !monthlyTraffic || monthlyTraffic.length === 0 ? (
+              <div
+                className="text-center py-12 rounded-xl border border-dashed border-border"
+                data-ocid="analytics.monthly_traffic.empty_state"
+              >
+                <BarChart2 className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
+                <p className="text-muted-foreground text-sm">
+                  No data yet. Data will appear here as users visit and download
+                  apps.
+                </p>
+              </div>
+            ) : (
+              <div
+                className="bg-card border border-border rounded-xl overflow-hidden"
+                data-ocid="analytics.monthly_traffic.table"
+              >
+                {(() => {
+                  const sorted = [...(monthlyTraffic as MonthlyTraffic[])].sort(
+                    (a, b) => a.month.localeCompare(b.month),
+                  );
+                  const maxVisits = Math.max(
+                    ...sorted.map((m) => Number((m as MonthlyTraffic).visits)),
+                  );
+                  return (
+                    <div className="p-5 space-y-4">
+                      {sorted.map((row, i) => {
+                        const visits = Number((row as MonthlyTraffic).visits);
+                        const barWidth =
+                          maxVisits > 0
+                            ? Math.round((visits / maxVisits) * 100)
+                            : 0;
+                        const [yr, mo] = (row as MonthlyTraffic).month.split(
+                          "-",
+                        );
+                        const monthName = new Date(
+                          Number(yr),
+                          Number(mo) - 1,
+                          1,
+                        ).toLocaleString("default", {
+                          month: "long",
+                          year: "numeric",
+                        });
+                        return (
+                          <div
+                            key={(row as MonthlyTraffic).month}
+                            className="flex items-center gap-4"
+                            data-ocid={`analytics.monthly_traffic.row.${i + 1}`}
+                          >
+                            <div className="w-32 shrink-0">
+                              <span className="text-sm font-medium text-foreground">
+                                {monthName}
+                              </span>
+                            </div>
+                            <div className="flex-1 flex items-center gap-3">
+                              <div className="flex-1 bg-secondary rounded-full h-3 overflow-hidden">
+                                <motion.div
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${barWidth}%` }}
+                                  transition={{ duration: 0.6, delay: i * 0.1 }}
+                                  className="h-3 rounded-full bg-gradient-to-r from-primary to-primary/70"
+                                />
+                              </div>
+                              <span className="font-display font-bold text-primary w-16 text-right">
+                                {visits.toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
 
       {/* App Add/Edit Dialog */}
       <Dialog open={appDialogOpen} onOpenChange={setAppDialogOpen}>
