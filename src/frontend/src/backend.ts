@@ -137,6 +137,12 @@ export interface backendInterface {
     updateApp(app: AppEntry): Promise<void>;
     updateSiteSettings(settings: SiteSettings): Promise<void>;
     verifyOTP(phone: string, otp: string): Promise<boolean>;
+    recordDownload(appId: string): Promise<void>;
+    recordPageVisit(monthKey: string): Promise<void>;
+    getDownloadStats(): Promise<Array<AppDownloadStat>>;
+    getMonthlyTraffic(): Promise<Array<MonthlyTraffic>>;
+    verifyAdminPassword(password: string): Promise<boolean>;
+    changeAdminPassword(currentPassword: string, newPassword: string): Promise<boolean>;
 }
 import type { UserProfile as _UserProfile, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
@@ -392,6 +398,30 @@ export class Backend implements backendInterface {
             const result = await this.actor.verifyOTP(arg0, arg1);
             return result;
         }
+    }
+    async recordDownload(arg0: string): Promise<void> {
+        const result = await this.actor.recordDownload(arg0);
+        return result;
+    }
+    async recordPageVisit(arg0: string): Promise<void> {
+        const result = await this.actor.recordPageVisit(arg0);
+        return result;
+    }
+    async getDownloadStats(): Promise<Array<AppDownloadStat>> {
+        const result = await this.actor.getDownloadStats();
+        return result;
+    }
+    async getMonthlyTraffic(): Promise<Array<MonthlyTraffic>> {
+        const result = await this.actor.getMonthlyTraffic();
+        return result;
+    }
+    async verifyAdminPassword(arg0: string): Promise<boolean> {
+        const result = await this.actor.verifyAdminPassword(arg0);
+        return result;
+    }
+    async changeAdminPassword(arg0: string, arg1: string): Promise<boolean> {
+        const result = await this.actor.changeAdminPassword(arg0, arg1);
+        return result;
     }
 }
 function from_candid_UserRole_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {

@@ -7,14 +7,6 @@ import type {
 } from "../backend.d";
 import { useActor } from "./useActor";
 
-// Extended actor type for analytics methods not yet in generated interface
-type AnalyticsActor = {
-  recordDownload(appId: string): Promise<void>;
-  recordPageVisit(monthKey: string): Promise<void>;
-  getDownloadStats(): Promise<Array<AppDownloadStat>>;
-  getMonthlyTraffic(): Promise<Array<MonthlyTraffic>>;
-};
-
 export function useGetAllApps() {
   const { actor, isFetching } = useActor();
   return useQuery<AppEntry[]>({
@@ -158,7 +150,7 @@ export function useRecordDownload() {
   return useMutation({
     mutationFn: (appId: string) => {
       if (!actor) throw new Error("No actor");
-      return (actor as unknown as AnalyticsActor).recordDownload(appId);
+      return actor.recordDownload(appId);
     },
   });
 }
@@ -168,7 +160,7 @@ export function useRecordPageVisit() {
   return useMutation({
     mutationFn: (monthKey: string) => {
       if (!actor) throw new Error("No actor");
-      return (actor as unknown as AnalyticsActor).recordPageVisit(monthKey);
+      return actor.recordPageVisit(monthKey);
     },
   });
 }
@@ -179,7 +171,7 @@ export function useGetDownloadStats() {
     queryKey: ["downloadStats"],
     queryFn: async () => {
       if (!actor) return [];
-      return (actor as unknown as AnalyticsActor).getDownloadStats();
+      return actor.getDownloadStats();
     },
     enabled: !!actor && !isFetching,
   });
@@ -191,27 +183,18 @@ export function useGetMonthlyTraffic() {
     queryKey: ["monthlyTraffic"],
     queryFn: async () => {
       if (!actor) return [];
-      return (actor as unknown as AnalyticsActor).getMonthlyTraffic();
+      return actor.getMonthlyTraffic();
     },
     enabled: !!actor && !isFetching,
   });
 }
-
-// Extended actor type for password management
-type PasswordActor = {
-  verifyAdminPassword(password: string): Promise<boolean>;
-  changeAdminPassword(
-    currentPassword: string,
-    newPassword: string,
-  ): Promise<boolean>;
-};
 
 export function useVerifyAdminPassword() {
   const { actor } = useActor();
   return useMutation({
     mutationFn: (password: string) => {
       if (!actor) throw new Error("No actor");
-      return (actor as unknown as PasswordActor).verifyAdminPassword(password);
+      return actor.verifyAdminPassword(password);
     },
   });
 }
@@ -224,10 +207,7 @@ export function useChangeAdminPassword() {
       newPassword,
     }: { currentPassword: string; newPassword: string }) => {
       if (!actor) throw new Error("No actor");
-      return (actor as unknown as PasswordActor).changeAdminPassword(
-        currentPassword,
-        newPassword,
-      );
+      return actor.changeAdminPassword(currentPassword, newPassword);
     },
   });
 }

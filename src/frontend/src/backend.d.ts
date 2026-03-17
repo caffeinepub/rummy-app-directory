@@ -67,4 +67,6 @@ export interface backendInterface {
     recordPageVisit(monthKey: string): Promise<void>;
     getDownloadStats(): Promise<Array<AppDownloadStat>>;
     getMonthlyTraffic(): Promise<Array<MonthlyTraffic>>;
+    verifyAdminPassword(password: string): Promise<boolean>;
+    changeAdminPassword(currentPassword: string, newPassword: string): Promise<boolean>;
 }
