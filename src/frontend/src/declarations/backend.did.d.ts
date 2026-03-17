@@ -25,6 +25,10 @@ export interface SiteSettings {
   'siteTitle' : string,
   'tagline' : string,
   'footerNote' : string,
+  'youtubeLink' : string,
+  'telegramLink' : string,
+  'instagramLink' : string,
+  'facebookLink' : string,
 }
 export interface UserProfile { 'name' : string }
 export type UserRole = { 'admin' : null } |

@@ -27,6 +27,7 @@ import {
   Crown,
   Eye,
   EyeOff,
+  ImagePlus,
   KeyRound,
   LayoutGrid,
   Loader2,
@@ -36,9 +37,10 @@ import {
   Save,
   Settings,
   Trash2,
+  X,
 } from "lucide-react";
 import { motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { AppEntry, SiteSettings } from "../backend.d";
 import {
@@ -64,6 +66,16 @@ const emptyApp: AppEntry = {
   sortOrder: 0n,
 };
 
+const emptySettings: SiteSettings = {
+  siteTitle: "",
+  tagline: "",
+  footerNote: "",
+  youtubeLink: "",
+  telegramLink: "",
+  instagramLink: "",
+  facebookLink: "",
+};
+
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("apps");
@@ -72,11 +84,8 @@ export default function AdminDashboard() {
   const [editingApp, setEditingApp] = useState<AppEntry | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<AppEntry>(emptyApp);
-  const [settingsForm, setSettingsForm] = useState<SiteSettings>({
-    siteTitle: "",
-    tagline: "",
-    footerNote: "",
-  });
+  const [settingsForm, setSettingsForm] = useState<SiteSettings>(emptySettings);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Password change state
   const [newPassword, setNewPassword] = useState("");
@@ -93,7 +102,15 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (settings) {
-      setSettingsForm(settings);
+      setSettingsForm({
+        siteTitle: settings.siteTitle || "",
+        tagline: settings.tagline || "",
+        footerNote: settings.footerNote || "",
+        youtubeLink: settings.youtubeLink || "",
+        telegramLink: settings.telegramLink || "",
+        instagramLink: settings.instagramLink || "",
+        facebookLink: settings.facebookLink || "",
+      });
     }
   }, [settings]);
 
@@ -112,6 +129,17 @@ export default function AdminDashboard() {
     setEditingApp(app);
     setFormData({ ...app });
     setAppDialogOpen(true);
+  };
+
+  const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const result = ev.target?.result as string;
+      setFormData((p) => ({ ...p, logoUrl: result }));
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSaveApp = async () => {
@@ -410,6 +438,139 @@ export default function AdminDashboard() {
                     data-ocid="settings.textarea"
                   />
                 </div>
+
+                {/* Social Media Links */}
+                <div className="border-t border-border pt-5">
+                  <p className="font-display font-semibold text-foreground mb-4">
+                    Social Media Links
+                  </p>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="youtubeLink"
+                        className="text-foreground flex items-center gap-2"
+                      >
+                        <span className="inline-flex w-5 h-5 rounded bg-red-600 items-center justify-center">
+                          <svg
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                            className="w-3 h-3 fill-white"
+                          >
+                            <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1C4.5 20.4 12 20.4 12 20.4s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.7 15.5V8.5l6.3 3.5-6.3 3.5z" />
+                          </svg>
+                        </span>
+                        YouTube Channel Link
+                      </Label>
+                      <Input
+                        id="youtubeLink"
+                        value={settingsForm.youtubeLink}
+                        onChange={(e) =>
+                          setSettingsForm((p) => ({
+                            ...p,
+                            youtubeLink: e.target.value,
+                          }))
+                        }
+                        className="bg-secondary border-border text-foreground"
+                        placeholder="https://youtube.com/@yourchannel"
+                        data-ocid="settings.youtube.input"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="telegramLink"
+                        className="text-foreground flex items-center gap-2"
+                      >
+                        <span className="inline-flex w-5 h-5 rounded bg-sky-500 items-center justify-center">
+                          <svg
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                            className="w-3 h-3 fill-white"
+                          >
+                            <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.6 0 12 0zm5.9 8.2-2 9.4c-.1.6-.5.8-.9.5l-2.6-1.9-1.2 1.2c-.1.1-.3.2-.6.2l.2-2.7 5-4.5c.2-.2 0-.3-.3-.1L6.2 14.8 3.7 14c-.5-.2-.5-.5.1-.7l11.6-4.5c.5-.2.9.1.5.4z" />
+                          </svg>
+                        </span>
+                        Telegram Channel Link
+                      </Label>
+                      <Input
+                        id="telegramLink"
+                        value={settingsForm.telegramLink}
+                        onChange={(e) =>
+                          setSettingsForm((p) => ({
+                            ...p,
+                            telegramLink: e.target.value,
+                          }))
+                        }
+                        className="bg-secondary border-border text-foreground"
+                        placeholder="https://t.me/yourchannel"
+                        data-ocid="settings.telegram.input"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="instagramLink"
+                        className="text-foreground flex items-center gap-2"
+                      >
+                        <span className="inline-flex w-5 h-5 rounded bg-pink-500 items-center justify-center">
+                          <svg
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                            className="w-3 h-3 fill-white"
+                          >
+                            <path d="M12 2.2c3.2 0 3.6 0 4.9.1 3.3.1 4.8 1.7 4.9 4.9.1 1.3.1 1.6.1 4.8 0 3.2 0 3.6-.1 4.8-.1 3.2-1.7 4.8-4.9 4.9-1.3.1-1.6.1-4.9.1-3.2 0-3.6 0-4.8-.1-3.3-.1-4.8-1.7-4.9-4.9C2.2 15.6 2.2 15.2 2.2 12c0-3.2 0-3.6.1-4.8C2.4 3.9 4 2.3 7.2 2.3c1.2-.1 1.6-.1 4.8-.1zM12 0C8.7 0 8.3 0 7.1.1 2.7.3.3 2.7.1 7.1 0 8.3 0 8.7 0 12s0 3.7.1 4.9c.2 4.4 2.6 6.8 7 7C8.3 24 8.7 24 12 24s3.7 0 4.9-.1c4.4-.2 6.8-2.6 7-7C24 15.7 24 15.3 24 12s0-3.7-.1-4.9c-.2-4.4-2.6-6.8-7-7C15.7 0 15.3 0 12 0zm0 5.8a6.2 6.2 0 1 0 0 12.4A6.2 6.2 0 0 0 12 5.8zm0 10.2a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.4-11.8a1.4 1.4 0 1 0 0 2.8 1.4 1.4 0 0 0 0-2.8z" />
+                          </svg>
+                        </span>
+                        Instagram Link
+                      </Label>
+                      <Input
+                        id="instagramLink"
+                        value={settingsForm.instagramLink}
+                        onChange={(e) =>
+                          setSettingsForm((p) => ({
+                            ...p,
+                            instagramLink: e.target.value,
+                          }))
+                        }
+                        className="bg-secondary border-border text-foreground"
+                        placeholder="https://instagram.com/yourprofile"
+                        data-ocid="settings.instagram.input"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="facebookLink"
+                        className="text-foreground flex items-center gap-2"
+                      >
+                        <span className="inline-flex w-5 h-5 rounded bg-blue-600 items-center justify-center">
+                          <svg
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                            className="w-3 h-3 fill-white"
+                          >
+                            <path d="M24 12.1C24 5.4 18.6 0 12 0S0 5.4 0 12.1C0 18.1 4.4 23.1 10.1 24v-8.4H7.1v-3.5h3V9.4c0-3 1.8-4.7 4.5-4.7 1.3 0 2.7.2 2.7.2v3h-1.5c-1.5 0-1.9.9-1.9 1.9v2.2h3.3l-.5 3.5h-2.8V24C19.6 23.1 24 18.1 24 12.1z" />
+                          </svg>
+                        </span>
+                        Facebook Page Link
+                      </Label>
+                      <Input
+                        id="facebookLink"
+                        value={settingsForm.facebookLink}
+                        onChange={(e) =>
+                          setSettingsForm((p) => ({
+                            ...p,
+                            facebookLink: e.target.value,
+                          }))
+                        }
+                        className="bg-secondary border-border text-foreground"
+                        placeholder="https://facebook.com/yourpage"
+                        data-ocid="settings.facebook.input"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <Button
                   type="button"
                   onClick={handleSaveSettings}
@@ -537,17 +698,51 @@ export default function AdminDashboard() {
               />
             </div>
 
+            {/* Logo Upload */}
             <div className="space-y-2">
-              <Label className="text-foreground">Logo URL</Label>
-              <Input
-                value={formData.logoUrl}
-                onChange={(e) =>
-                  setFormData((p) => ({ ...p, logoUrl: e.target.value }))
-                }
-                className="bg-secondary border-border text-foreground"
-                placeholder="https://example.com/logo.png"
-                data-ocid="apps.logo.input"
-              />
+              <Label className="text-foreground">Logo Upload</Label>
+              <div className="flex items-center gap-3">
+                {formData.logoUrl && (
+                  <div className="relative shrink-0">
+                    <img
+                      src={formData.logoUrl}
+                      alt="Logo preview"
+                      className="w-10 h-10 rounded-lg object-cover border border-border"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData((p) => ({ ...p, logoUrl: "" }));
+                        if (fileInputRef.current)
+                          fileInputRef.current.value = "";
+                      }}
+                      className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center hover:bg-destructive/80"
+                      title="Remove logo"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
+                )}
+                <label
+                  htmlFor="logo-file-input"
+                  className="flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg border border-dashed border-border bg-secondary hover:bg-secondary/70 hover:border-primary transition-colors text-sm text-muted-foreground hover:text-foreground"
+                >
+                  <ImagePlus className="w-4 h-4" />
+                  {formData.logoUrl ? "Change Logo" : "Choose Logo File"}
+                </label>
+                <input
+                  id="logo-file-input"
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={handleLogoFileChange}
+                  data-ocid="apps.logo.input"
+                />
+              </div>
+              {formData.logoUrl && (
+                <p className="text-xs text-muted-foreground">Logo selected ✓</p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

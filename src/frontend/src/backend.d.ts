@@ -11,6 +11,10 @@ export interface SiteSettings {
     siteTitle: string;
     tagline: string;
     footerNote: string;
+    youtubeLink: string;
+    telegramLink: string;
+    instagramLink: string;
+    facebookLink: string;
 }
 export interface AppEntry {
     id: string;

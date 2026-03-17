@@ -36,6 +36,10 @@ export function useGetSiteSettings() {
           siteTitle: "GameZone",
           tagline: "Top Gaming Apps",
           footerNote: "",
+          youtubeLink: "",
+          telegramLink: "",
+          instagramLink: "",
+          facebookLink: "",
         };
       return actor.getSiteSettings();
     },

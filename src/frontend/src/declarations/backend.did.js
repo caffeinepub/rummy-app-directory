@@ -29,6 +29,10 @@ export const SiteSettings = IDL.Record({
   'siteTitle' : IDL.Text,
   'tagline' : IDL.Text,
   'footerNote' : IDL.Text,
+  'youtubeLink' : IDL.Text,
+  'telegramLink' : IDL.Text,
+  'instagramLink' : IDL.Text,
+  'facebookLink' : IDL.Text,
 });
 
 export const idlService = IDL.Service({
@@ -80,6 +84,10 @@ export const idlFactory = ({ IDL }) => {
     'siteTitle' : IDL.Text,
     'tagline' : IDL.Text,
     'footerNote' : IDL.Text,
+    'youtubeLink' : IDL.Text,
+    'telegramLink' : IDL.Text,
+    'instagramLink' : IDL.Text,
+    'facebookLink' : IDL.Text,
   });
   
   return IDL.Service({
